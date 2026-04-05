@@ -174,7 +174,7 @@ npm run deploy:cf
 
 ### 4.5 Build หน้าเว็บให้ชี้ API บนโดเมนเดียวกัน
 
-ก่อน `npm run build` ที่ใช้คู่กับ Worker ให้ตั้ง (เช่นใน CI หรือไฟล์ `.env` บนเครื่อง build):
+ก่อน `npm run build` ที่ใช้คู่กับ Worker ให้ตั้งในไฟล์ `.env` บนเครื่องที่ build (หรือ export ก่อนรันคำสั่ง):
 
 - `VITE_USE_CLOUD=true`
 - **ไม่ตั้ง** `VITE_API_URL` (หรือเว้นว่าง) → คำขอไปที่ `/api/...` บนโดเมนเดียวกับ Worker
@@ -185,21 +185,7 @@ npm run deploy:cf
 npm run preview:cf
 ```
 
-### 4.6 Deploy อัตโนมัติจาก GitHub Actions
-
-ไฟล์ [`.github/workflows/cloudflare.yml`](.github/workflows/cloudflare.yml) จะ:
-
-- **ทุก PR ไป `main`:** รัน `npm ci` + `npm run build` (ตรวจว่า build ผ่าน)
-- **เมื่อ push ไป `main` หรือกด Run workflow:** build แล้วรัน `wrangler deploy`
-
-ตั้ง **Secrets** ใน repo → **Settings** → **Secrets and variables** → **Actions**:
-
-| Secret | หมายเหตุ |
-|--------|----------|
-| `CLOUDFLARE_API_TOKEN` | สร้างที่แดชบอร์ด Cloudflare → **My Profile** → **API Tokens** — แนะนำ template **Edit Cloudflare Workers** (หรือสิทธิ์ที่รวม Workers Scripts แก้ไขได้) |
-| `CLOUDFLARE_ACCOUNT_ID` | หน้า **Workers & Pages** ของบัญชี (ค่า **Account ID** ด้านขวา) |
-
-ความลับของ Worker (**Turso**, **ADMIN_API_KEY**) ยังตั้งบน Cloudflare ด้วย `wrangler secret put` หรือในแดชบอร์ด Worker — **ไม่** ใส่ใน GitHub
+> Deploy ขึ้น Cloudflare ทำได้เองจากเครื่อง: ตั้งค่า `wrangler`/secret ตามหัวข้อ 4.3 แล้วรัน `npm run deploy:cf` (ไม่จำเป็นต้องใช้ GitHub Actions)
 
 ---
 
