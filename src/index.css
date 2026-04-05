@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* กล่องฟิลด์ในฟอร์มแอดมิน */
+  .ct-field {
+    @apply rounded-2xl border border-slate-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-sm transition-all duration-200;
+  }
+  .ct-field:focus-within {
+    @apply border-cyan-200/80 shadow-md ring-1 ring-cyan-100/60;
+  }
+  .ct-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.07em] text-slate-500;
+  }
+  .ct-char {
+    @apply tabular-nums text-[11px];
+  }
+  .ct-section-title {
+    @apply text-sm font-semibold text-slate-800;
+  }
+
+  /* กรอบตัดบนพื้นดำ (CT) — มุมจับเดิมของ react-image-crop มองแทบไม่เห็น */
+  .ct-crop-stage .ReactCrop {
+    --rc-border-color: rgba(34, 211, 238, 0.95);
+    --rc-drag-handle-bg-colour: rgba(255, 255, 255, 0.95);
+    --rc-drag-handle-size: 16px;
+    --rc-focus-color: #0891b2;
+  }
+}
