@@ -1,6 +1,6 @@
 # CT Brain NC Teaching Studio
 
-แอปสอนอ่าน CT สมองแบบอินเทอร์แอคทีฟ — โหมดคลาวด์ใช้ **Turso** (ข้อความ/เมตาดาตาเคส) + **Cloudflare R2** (ไฟล์รูป) และ API แบบ **Node.js (Hono)**
+แอปสอนอ่าน CT สมองแบบอินเทอร์แอคทีฟ — โหมดคลาวด์ใช้ **Turso** (ข้อความ/เมตาดาตาเคส) + **Cloudflare R2** (ไฟล์รูป) และ API แบบ **Hono** (รันได้ทั้ง **Node** กับ **Cloudflare Worker**)
 
 ---
 
@@ -8,12 +8,12 @@
 
 | ส่วน | คืออะไร | Deploy ที่ไหนได้บ้าง |
 |------|---------|----------------------|
-| **Frontend** | โปรเจกต์ Vite/React → โฟลเดอร์ `dist/` | **Cloudflare Pages** (แนะนำ), Netlify, ฯลฯ |
-| **API (`server/`)** | Node.js + Hono + `@hono/node-server` | **ไม่ใช่** static — ต้องรันบนเซิร์ฟเวอร์ที่รองรับ Node เช่น **Railway, Render, Fly.io, VPS** หรือเครื่องของคุณที่มี public URL |
+| **Frontend** | โปรเจกต์ Vite/React → โฟลเดอร์ `dist/` | รวมกับ Worker (`wrangler deploy`) หรือ **Cloudflare Pages** / Netlify ฯลฯ |
+| **API** | Hono — โค้ดเส้นทางร่วมใน `server/hono-routes.mjs` | **Worker** (`worker/index.js` + `wrangler.toml`) หรือ **Node** (`server/index.mjs`) |
 | **Turso** | ฐานข้อมูล LibSQL | บริการของ Turso (คลาวด์) |
-| **R2** | ที่เก็บไฟล์รูปแบบ S3 | บริการของ Cloudflare |
+| **R2** | ที่เก็บไฟล์รูป | บริการของ Cloudflare — Node ใช้ S3 API; Worker ใช้ **R2 binding** (ไม่ต้องใส่ access key ใน Worker) |
 
-> **สำคัญ:** โฟลเดอร์ `server/` ใน repo นี้ **ออกแบบให้รันด้วย Node** ไม่ได้ถูกแปลงเป็น Cloudflare Workers/Pages Functions ให้แล้ว ดังนั้น **Cloudflare Pages ใช้เฉพาะโหลดหน้าเว็บ** ส่วน API ต้องมี URL แยก แล้วตั้ง `VITE_API_URL` ชี้ไปที่นั่น
+> **Full-stack บน Cloudflare:** รัน `npm run deploy:cf` หลังตั้ง `wrangler.toml` + secrets — Worker จะเสิร์ฟทั้งไฟล์จาก `dist/` และ `/api/*` บนโดเมนเดียวกัน (ไม่ต้องตั้ง `VITE_API_URL` ตอน build)
 
 ---
 
@@ -21,8 +21,8 @@
 
 | ที่ใส่ | ตัวแปร | หมายเหตุ |
 |--------|--------|----------|
-| **Cloudflare Pages** (โปรเจกต์ Pages → **Settings** → **Environment variables**) | `VITE_USE_CLOUD` = `true` | เปิดโหมดเรียก API |
-| เดียวกัน | `VITE_API_URL` = `https://โดเมน-api-ของคุณ` | **ไม่มี** `/` ท้าย — ชี้ไปที่เซิร์ฟเวอร์ที่รัน `npm run server` |
+| **ตอน build หน้าเว็บ** (Pages หรือ CI ก่อน `wrangler deploy`) | `VITE_USE_CLOUD` = `true` | เปิดโหมดเรียก API |
+| เดียวกัน | `VITE_API_URL` | **ว่าง** = เรียก `/api` บนโดเมนเดียวกับหน้าเว็บ (แนะนำเมื่อ deploy Worker+assets); หรือใส่ URL API แยก (Node) **ไม่มี** `/` ท้าย |
 | **โฮสต์ API (Node)** เช่น Railway / Render / Fly.io / VPS — ส่วน **Variables** / **Secrets** ของบริการนั้น **หรือ** ไฟล์ `.env` บนเครื่องที่รัน API | `PORT`, `TURSO_*`, `R2_*`, `ADMIN_WEB_PASSWORD`, `ADMIN_API_KEY`, `CORS_ORIGIN` | ทุกตัวใน `.env.example` ที่**ไม่**ขึ้นต้น `VITE_` เป็นของ **API เท่านั้น** — **ห้าม** ใส่ใน Pages (เดี๋ยวรั่วใน bundle หรือใช้ไม่ได้) |
 
 **ตั้งค่า env บน Cloudflare Pages (หน้าเว็บ):**
@@ -31,7 +31,7 @@
 2. แท็บ **Settings** → เลื่อนไป **Environment variables**  
 3. **Add variable** — เลือก **Production** (และถ้าต้องการ **Preview** แยก)  
 4. ใส่ชื่อ `VITE_USE_CLOUD` ค่า `true` แล้วบันทึก  
-5. ใส่ `VITE_API_URL` ค่า URL จริงของ API  
+5. ถ้า API แยกจาก Pages ให้ใส่ `VITE_API_URL` เป็น URL จริงของ API; ถ้าใช้ Worker full-stack ให้เว้น `VITE_API_URL` ว่าง  
 6. ไปที่ **Deployments** → **Retry deployment** / **Create deployment** ใหม่ เพราะตัวแปร `VITE_*` ถูกอ่านตอน **build** เท่านั้น
 
 **API env ใส่ที่ไหน:** ที่แดชบอร์ดของผู้ให้บริการที่คุณ deploy `server/index.mjs` (ไม่ใช่ Cloudflare Pages) — สร้างตัวแปรชื่อเดียวกับในตารางหัวข้อ **3)** ด้านล่าง แล้ว redeploy / restart service
@@ -42,9 +42,9 @@
 
 1. สร้าง **Turso database** + เก็บ `TURSO_DATABASE_URL` และ `TURSO_AUTH_TOKEN`
 2. สร้าง **R2 bucket** + API Token + เปิด URL สาธารณะ → เก็บ `R2_*` และ `R2_PUBLIC_BASE_URL`
-3. Deploy **API (Node)** ไปที่โฮสต์ใดก็ได้ที่รัน Node ได้ → ได้ URL เช่น `https://api.example.com`
-4. ตั้งค่า **CORS** บน API ให้รวมโดเมนหน้าเว็บ (Pages)
-5. Push โค้ดขึ้น **GitHub** และเชื่อม **Cloudflare Pages** — build หน้าเว็บ + ตั้งตัวแปร `VITE_*`
+3. Deploy API — เลือก **Worker** (`npm run deploy:cf`) หรือ **Node** บนโฮสต์อื่น → ได้ URL ฐานของแอปหรือ `https://api.example.com`
+4. ถ้าโดเมนหน้าเว็บกับ API คนละ origin ให้ตั้ง **CORS** (`CORS_ORIGIN`) บน API
+5. Push โค้ดขึ้น **GitHub** และ deploy ตามแพลตฟอร์ม — build หน้าเว็บ + ตั้งตัวแปร `VITE_*` ให้ตรงกับ URL จริง
 6. ทดสอบล็อกอินแอดมิน / สร้างเคส / อัปโหลดรูป
 
 ---
@@ -130,7 +130,64 @@ npm run server
 
 ---
 
-## 4) Deploy API (Node) — เลือกอย่างใดอย่างหนึ่ง
+## 4) Deploy บน Cloudflare — Worker + static (`dist`) ชุดเดียว
+
+โฟลเดอร์ `worker/` + `wrangler.toml` รวม **เส้นทาง `/api/*`** (เดียวกับ Node) กับ **ไฟล์จาก `dist/`** (SPA fallback ไป `index.html`)
+
+### 4.1 เตรียม R2
+
+1. สร้าง bucket ชื่อเดียวกับใน `wrangler.toml` → คีย์ `[[r2_buckets]]` → `bucket_name` (ค่าเริ่มต้นใน repo คือ `ct-training-cases` — แก้ให้ตรงชื่อจริงของคุณ)
+2. เปิด URL สาธารณะของบัคเก็ต → ใช้เป็น `R2_PUBLIC_BASE_URL` (vars ของ Worker)
+
+### 4.2 ติดตั้ง CLI และ build
+
+```bash
+npm install
+npm run build
+```
+
+### 4.3 ตัวแปรและความลับของ Worker
+
+| ชนิด | ชื่อ | หมายเหตุ |
+|------|------|----------|
+| Secret | `TURSO_DATABASE_URL` | `libsql://...` |
+| Secret | `TURSO_AUTH_TOKEN` | token Turso |
+| Secret | `ADMIN_API_KEY` | คีย์ยาวสุ่ม — ใช้ยืนยันตอนแก้ไขเคส |
+| Var (ใน `wrangler.toml` หรือแดชบอร์ด) | `R2_PUBLIC_BASE_URL` | URL สาธารณะ R2 **ไม่มี** `/` ท้าย |
+| Var (ไม่บังคับ) | `MAX_CASES`, `CORS_ORIGIN`, `ADMIN_WEB_PASSWORD` | เหมือน `.env.example` |
+
+ใส่ secret จากเครื่อง (หลัง `npx wrangler login`):
+
+```bash
+npx wrangler secret put TURSO_DATABASE_URL
+npx wrangler secret put TURSO_AUTH_TOKEN
+npx wrangler secret put ADMIN_API_KEY
+```
+
+### 4.4 Deploy
+
+```bash
+npm run deploy:cf
+```
+
+ได้ URL แบบ `https://ct-training.<subdomain>.workers.dev` — ตั้ง custom domain ได้ในแดชบอร์ด Workers
+
+### 4.5 Build หน้าเว็บให้ชี้ API บนโดเมนเดียวกัน
+
+ก่อน `npm run build` ที่ใช้คู่กับ Worker ให้ตั้ง (เช่นใน CI หรือไฟล์ `.env` บนเครื่อง build):
+
+- `VITE_USE_CLOUD=true`
+- **ไม่ตั้ง** `VITE_API_URL` (หรือเว้นว่าง) → คำขอไปที่ `/api/...` บนโดเมนเดียวกับ Worker
+
+ทดสอบในเครื่องหลัง build:
+
+```bash
+npm run preview:cf
+```
+
+---
+
+## 5) Deploy API (Node) — โฮสต์แยก (Railway / Render / VPS ฯลฯ)
 
 แนวทางทั่วไป (ไม่ผูกกับผู้ให้บริการรายใดรายหนึ่ง):
 
@@ -145,7 +202,7 @@ npm run server
 
 ---
 
-## 5) GitHub
+## 6) GitHub
 
 1. สร้าง repository ใหม่บน GitHub (public/private ตามต้องการ)
 2. บนเครื่อง local:
@@ -163,7 +220,7 @@ git push -u origin main
 
 ---
 
-## 6) Cloudflare Pages (Frontend เท่านั้น)
+## 7) Cloudflare Pages (เฉพาะหน้าเว็บ — เมื่อ API รันแยกเป็น Node)
 
 ### 6.1 เชื่อมกับ GitHub
 
@@ -207,16 +264,16 @@ npm run teaching:scan
 
 ---
 
-## 7) เชื่อมวงจรให้ครบ
+## 8) เชื่อมวงจรให้ครบ
 
 1. **API** รันอยู่ + `GET /api/health` ผ่าน  
-2. **CORS:** บน API ตั้ง `CORS_ORIGIN` ให้ตรงกับ URL Pages เช่น `https://<project>.pages.dev`  
-3. **Pages** build สำเร็จ + ตั้ง `VITE_USE_CLOUD=true` และ `VITE_API_URL=https://...`  
-4. เปิดหน้าเว็บ Pages → ล็อกอินแอดมินด้วย `ADMIN_WEB_PASSWORD` → สร้างเคส + อัปโหลดรูป → ตรวจว่ารูปโหลดจาก `R2_PUBLIC_BASE_URL` และรายการเคสมาจาก Turso
+2. **CORS:** ถ้าโดเมนหน้าเว็บ ≠ API ให้ตั้ง `CORS_ORIGIN` บน API ให้ตรงกับ URL หน้าเว็บ  
+3. **Build หน้าเว็บ:** `VITE_USE_CLOUD=true` และ `VITE_API_URL` ชี้ API แยก **หรือ** เว้นว่างเมื่อใช้ Worker บนโดเมนเดียวกัน  
+4. เปิดหน้าเว็บ → ล็อกอินแอดมินด้วย `ADMIN_WEB_PASSWORD` → สร้างเคส + อัปโหลดรูป → ตรวจว่ารูปโหลดจาก `R2_PUBLIC_BASE_URL` และรายการเคสมาจาก Turso
 
 ---
 
-## 8) การพัฒนาในเครื่อง (อ้างอิง)
+## 9) การพัฒนาในเครื่อง (อ้างอิง)
 
 ```bash
 npm install
@@ -232,29 +289,15 @@ npm run dev:full
 
 ---
 
-## 9) ข้อจำกัดและทางเลือกในอนาคต
+## 10) ข้อจำกัดและทางเลือกในอนาคต
 
-- **ไม่มี Workers เวอร์ชันใน repo:** ถ้าต้องการให้ API อยู่บน Cloudflare ทั้งหมด ต้องพอร์ต `server/` ไป **Cloudflare Workers + R2 binding + D1/Turso HTTP** — งานแยกจากการ deploy แบบในเอกสารนี้
+- **Worker vs Node:** Worker ใช้ Turso ผ่าน `@libsql/client/web` และ R2 ผ่าน binding — ไม่ต้องใส่ `R2_ACCESS_KEY_*` ใน Worker
 - **ขีดจำกัดขนาดข้อความ/รูป:** ดู `server/limits.mjs` และ endpoint `GET /api/limits`
+- **D1:** ถ้าต้องการย้ายจาก Turso ไป **D1** ต้องแก้เลเยอร์ `server/cases-db.mjs` ให้ใช้ D1 API — ยังไม่ได้ทำใน repo นี้
 
-### 9.1 ไม่มีโฮสต์ API แยก — เอาไว้ Cloudflare ที่เดียวได้ไหม (แบบฟรี)?
+### 10.1 โควต้าและข้อจำกัด Worker (แบบฟรีมีเพดาน)
 
-**ได้ในเชิงสถาปัตยกรรม** โดยใช้บัญชี Cloudflare ชุดเดียวกับ Pages แต่ **ไม่ใช่การเอา `server/index.mjs` ไปรันบน Pages** เพราะ Pages ไม่รัน Node แบบนั้น
-
-แนวทางที่นิยม (โควต้าฟรีมีจำกัด — ดูเอกสาร Cloudflare ล่าสุด):
-
-| ชั้น | บน Cloudflare | หมายเหตุ |
-|------|----------------|----------|
-| หน้าเว็บ | **Pages** | static จาก `dist/` เหมือนเดิม |
-| API | **Workers** หรือ **Pages Functions** | รันโค้ดแบบ V8 isolate ไม่ใช่ Node เต็มรูปแบบ |
-| รูป | **R2** + **binding** ใน Worker | ไม่จำเป็นต้องใช้ S3 access key ใน Worker ถ้าผูก bucket ผ่าน `wrangler` |
-| ข้อมูลเคส | **D1** (SQLite บน Cloudflare) *หรือ* ยังใช้ **Turso** ผ่าน HTTP จาก Worker | Turso ยังเป็น “นอก Cloudflare” แต่มีแพ็กเกจฟรีของตัวเอง; ถ้าต้องการ “เก็บข้อมูลบน CF” จริงๆ ใช้ **D1** |
-
-**สิ่งที่ต้องทำในโปรเจกต์นี้:** เขียน API ใหม่ (หรือพอร์ต) ให้เป็น **Hono บน Workers** (หรือ fetch handler) + อัปโหลดรูปด้วย **R2 binding** + คำสั่ง SQL ไปที่ **D1** หรือ client ไป **Turso** — แล้วตั้ง `VITE_API_URL` ชี้ไปที่โดเมน Worker (เช่น `https://ct-api.<user>.workers.dev`) หรือใช้ route ย่อยของโดเมนเดียวกับ Pages
-
-**ข้อจำกัดแบบฟรีโดยทั่วไป:** จำนวนคำขอ Worker ต่อวัน, เวลา CPU ต่อคำขอ, ขนาด body อัปโหลด — โปรเจกต์สอน/ทดลองมักพอ แต่โหลดหนักต้องดูแผนจ่ายเงิน
-
-> Repo นี้ยังไม่มีโฟลเดอร์ `workers/` หรือ `functions/` สำหรับ API — ถ้าต้องการให้ช่วยสเกลโฟลด Workers + D1 + R2 ให้สอดคล้อง endpoint เดิม (`/api/cases` ฯลฯ) แจ้งได้ในประเด็น implement แยก
+จำนวนคำขอต่อวัน, เวลา CPU ต่อคำขอ, ขนาด body อัปโหลด — ดู [เอกสาร Cloudflare Workers](https://developers.cloudflare.com/workers/platform/limits/) ฉบับล่าสุด
 
 ---
 
@@ -262,8 +305,8 @@ npm run dev:full
 
 | สิ่งที่ deploy | ที่ไหน |
 |----------------|--------|
-| หน้าเว็บ (React) | **Cloudflare Pages** (`npm run build` → `dist`) |
-| API (แบบใน repo ปัจจุบัน) | **Node host แยก** + env ตาม `.env.example` |
-| API (ถ้าพอร์ตแล้ว) | **Workers / Pages Functions** + R2 binding (+ D1 หรือ Turso) — **ไม่ต้องโฮสต์ Node แยก** |
-| ฐานข้อมูล | **Turso** (แบบปัจจุบัน) หรือ **D1** (ถ้าย้ายมา Cloudflare ทั้งก้อน) |
+| หน้าเว็บ + API ชุดเดียว (แนะนำบน CF) | **`npm run deploy:cf`** → Worker + static จาก `dist/` (`wrangler.toml`) |
+| หน้าเว็บอย่างเดียว | **Cloudflare Pages** / โฮสต์ static อื่น (`npm run build` → `dist`) |
+| API แบบ Node | **`npm run server`** บน Railway / Render / VPS + env ตาม `.env.example` |
+| ฐานข้อมูล | **Turso** |
 | ไฟล์รูป | **Cloudflare R2** + URL สาธารณะ |

@@ -1,0 +1,26 @@
+# Cloudflare Worker + static assets (หลัง npm run build)
+# คำสั่ง: npm run deploy:cf
+# ตั้งชื่อบัคเก็ต R2 จริงในแดชบอร์ด แล้วแก้ bucket_name ด้านล่าง หรือใช้ wrangler ผูก bucket
+name = "ct-training"
+main = "worker/index.js"
+compatibility_date = "2025-04-05"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "ct-training-cases"
+
+# ตัวแปรที่ไม่เป็นความลับ (แก้เป็นค่าจริงก่อน deploy หรือ override ในแดชบอร์ด)
+[vars]
+R2_PUBLIC_BASE_URL = "https://your-bucket-public.example.com"
+# MAX_CASES = "12"
+# CORS_ORIGIN = "https://ct-training.xxx.workers.dev"
+# ADMIN_WEB_PASSWORD = "neuro"
+
+# ใส่เป็น Secret ในแดชบอร์ด / wrangler secret put:
+#   TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, ADMIN_API_KEY

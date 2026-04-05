@@ -10,13 +10,17 @@ export const LIMITS = {
 
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
-/** จำนวนเคสสูงสุดใน DB (แต่ละเคสมีรูป 1 ไฟล์) — ตั้งผ่าน MAX_CASES; ไม่ตั้งหรือค่าไม่ถูกต้อง = ไม่จำกัด */
-export function getMaxCases() {
-  const raw = process.env.MAX_CASES;
+/** จำนวนเคสสูงสุด — ใช้ใน Worker ที่ไม่มี process.env */
+export function parseMaxCases(raw) {
   if (raw == null || String(raw).trim() === "") return null;
   const n = parseInt(String(raw).trim(), 10);
   if (!Number.isFinite(n) || n < 1) return null;
   return n;
+}
+
+/** จำนวนเคสสูงสุดใน DB (แต่ละเคสมีรูป 1 ไฟล์) — ตั้งผ่าน MAX_CASES; ไม่ตั้งหรือค่าไม่ถูกต้อง = ไม่จำกัด */
+export function getMaxCases() {
+  return parseMaxCases(process.env.MAX_CASES);
 }
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
