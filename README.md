@@ -185,6 +185,22 @@ npm run deploy:cf
 npm run preview:cf
 ```
 
+### 4.6 Deploy อัตโนมัติจาก GitHub Actions
+
+ไฟล์ [`.github/workflows/cloudflare.yml`](.github/workflows/cloudflare.yml) จะ:
+
+- **ทุก PR ไป `main`:** รัน `npm ci` + `npm run build` (ตรวจว่า build ผ่าน)
+- **เมื่อ push ไป `main` หรือกด Run workflow:** build แล้วรัน `wrangler deploy`
+
+ตั้ง **Secrets** ใน repo → **Settings** → **Secrets and variables** → **Actions**:
+
+| Secret | หมายเหตุ |
+|--------|----------|
+| `CLOUDFLARE_API_TOKEN` | สร้างที่แดชบอร์ด Cloudflare → **My Profile** → **API Tokens** — แนะนำ template **Edit Cloudflare Workers** (หรือสิทธิ์ที่รวม Workers Scripts แก้ไขได้) |
+| `CLOUDFLARE_ACCOUNT_ID` | หน้า **Workers & Pages** ของบัญชี (ค่า **Account ID** ด้านขวา) |
+
+ความลับของ Worker (**Turso**, **ADMIN_API_KEY**) ยังตั้งบน Cloudflare ด้วย `wrangler secret put` หรือในแดชบอร์ด Worker — **ไม่** ใส่ใน GitHub
+
 ---
 
 ## 5) Deploy API (Node) — โฮสต์แยก (Railway / Render / VPS ฯลฯ)
