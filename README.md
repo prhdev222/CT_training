@@ -189,6 +189,21 @@ npm run preview:cf
 
 > Deploy ขึ้น Cloudflare ทำได้เองจากเครื่อง: ตั้งค่า `wrangler`/secret ตามหัวข้อ 4.3 แล้วรัน `npm run deploy:cf` (ไม่จำเป็นต้องใช้ GitHub Actions)
 
+### 4.6 เชื่อม GitHub — ใช้ Workers Builds (แนะนำ)
+
+**ได้** — แต่โปรเจกต์นี้ควรเชื่อมกับ **Worker ที่มี static assets** ผ่าน **Workers Builds** ไม่ใช่สร้าง **Cloudflare Pages แบบ static ล้วน** เพราะถ้า Pages แค่ build `dist` จะได้แค่หน้าเว็บ **ไม่มี** `/api/*` บนโดเมนเดียวกัน
+
+ขั้นตอนสรุป (รายละเอียดและ UI อาจเปลี่ยนตามแดชบอร์ด — ดู [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)):
+
+1. เข้า [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages) → **Create** → เลือกแบบ **Import Git repository** / เชื่อม GitHub แล้วเลือก repo `CT_training` (หรือชื่อ repo ของคุณ)
+2. **Build command:** `npm ci && npm run build`
+3. **Deploy command:** ค่าเริ่มต้น `npx wrangler deploy` (หรือ `npm run deploy:cf` — จะ build ซ้ำรอบที่สอง ไม่จำเป็น)
+4. ใน **Settings → Builds → Build variables** (ตัวแปรตอน build เท่านั้น) ใส่ **`VITE_USE_CLOUD`** = `true` และ **อย่าใส่** `VITE_API_URL` ถ้าต้องการให้หน้าเว็บเรียก `/api` บนโดเมนเดียวกับ Worker
+5. ใน **Settings → Variables & Secrets** ของ Worker (รันไทม์) ใส่ secret **`TURSO_DATABASE_URL`**, **`TURSO_AUTH_TOKEN`**, **`ADMIN_API_KEY`** ให้ตรงกับที่ใช้ใน `.env` — ค่า **`R2_PUBLIC_BASE_URL`** และ binding **R2** อ่านจาก `wrangler.toml` ตอน deploy (หรือแก้ในแดชบอร์ดให้ตรง bucket จริง)
+6. Push ไป branch production (เช่น `main`) แล้วรอ build/deploy บนแดชบอร์ด
+
+ถ้าเคยสร้าง Worker ชื่อเดียวกับใน `wrangler.toml` (`ct-training`) ไว้แล้ว ให้ไปที่ Worker นั้น → **Settings → Builds** → **Connect** repository แทนการสร้างซ้ำ
+
 ---
 
 ## 5) Deploy API (Node) — โฮสต์แยก (Railway / Render / VPS ฯลฯ)
@@ -226,7 +241,9 @@ git push -u origin main
 
 ## 7) Cloudflare Pages (เฉพาะหน้าเว็บ — เมื่อ API รันแยกเป็น Node)
 
-### 6.1 เชื่อมกับ GitHub
+> ถ้าต้องการ **หน้าเว็บ + `/api` โดเมนเดียวกัน** จาก Git ให้ใช้หัวข้อ **4.6 (Workers Builds)** แทนเมนู Pages ล้วน
+
+### 7.1 เชื่อมกับ GitHub
 
 1. Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
 2. เลือก repo `CT_trainer` (หรือชื่อที่คุณตั้ง)
@@ -239,7 +256,7 @@ git push -u origin main
 | **Build output directory** | `dist` |
 | **Root directory** | `/` (root ของ repo) |
 
-### 6.2 ตัวแปร Environment (Production) บน Pages
+### 7.2 ตัวแปร Environment (Production) บน Pages
 
 ตั้งใน **Settings → Environment variables** ของโปรเจกต์ Pages:
 
@@ -250,11 +267,11 @@ git push -u origin main
 
 > ตัวแปรที่ขึ้นต้นด้วย `VITE_` ถูกแทรกตอน **build** หากเปลี่ยนค่า ต้อง **Rebuild** deployment
 
-### 6.3 SPA / client-side routing
+### 7.3 SPA / client-side routing
 
 โฟลเดอร์ `public/_redirects` มีกฎสำหรับ Cloudflare Pages ให้เส้นทางทั้งหมด fallback ไป `index.html` (เหมาะกับ SPA)
 
-### 6.4 รูปใน `public/teaching-images`
+### 7.4 รูปใน `public/teaching-images`
 
 ไฟล์ใน `public/` จะถูก copy ไป `dist/` เมื่อ build — รูปสอนแบบ static ยังใช้ได้บน Pages โดยไม่ผ่าน R2
 
