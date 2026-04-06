@@ -55,23 +55,45 @@ function workerCtx(env) {
 
 const apiApp = createCaseApp((c) => workerCtx(c.env));
 
+function jsonError(message, status = 500) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+}
+
+/** บังคับให้ deploy ผ่าน wrangler พร้อม [assets] + [[r2_buckets]] — ถ้าไม่มี binding จะได้ 1101 แทนข้อความชัด */
+function assertWorkerBindings(env) {
+  if (!env.ASSETS) {
+    throw new Error(
+      "ไม่มี ASSETS binding — ต้อง deploy ด้วย wrangler (มี [assets] directory = dist) หลัง npm run build ไม่ใช่แค่อัปโหลดสคริปต์เปล่า"
+    );
+  }
+  if (!env.R2_BUCKET) {
+    throw new Error("ไม่มี R2_BUCKET binding — ตรวจ wrangler.toml [[r2_buckets]] และชื่อ bucket ในแดชบอร์ด");
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) {
-      if (url.pathname !== "/api/health") {
-        try {
-          await ensureMigrate(getDb(env));
-        } catch (e) {
-          console.error("migrate failed:", e);
-          return new Response(JSON.stringify({ error: String(e.message || e) }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          });
+    try {
+      assertWorkerBindings(env);
+      const url = new URL(request.url);
+      if (url.pathname.startsWith("/api/")) {
+        if (url.pathname !== "/api/health") {
+          try {
+            await ensureMigrate(getDb(env));
+          } catch (e) {
+            console.error("migrate failed:", e);
+            return jsonError(String(e.message || e), 500);
+          }
         }
+        return apiApp.fetch(request, env, ctx);
       }
-      return apiApp.fetch(request, env, ctx);
+      return env.ASSETS.fetch(request);
+    } catch (e) {
+      console.error("worker:", e);
+      return jsonError(String(e.message || e), 500);
     }
-    return env.ASSETS.fetch(request);
   },
 };
