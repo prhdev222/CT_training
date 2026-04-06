@@ -115,6 +115,16 @@ export function createCaseApp(getCtx) {
     return String(password || "") === p;
   }
 
+  /** พอร์ต Node API ไม่มี SPA — ช่วยไม่ให้เข้า / แล้วงงว่า 404 */
+  app.get("/", (c) =>
+    c.json({
+      ok: true,
+      service: "CT trainer API",
+      hint: "หน้าเว็บให้รัน npm run dev (มักเป็น http://localhost:5173) หรือ npm run dev:full",
+      health: "/api/health",
+    })
+  );
+
   app.get("/api/health", (c) => c.json({ ok: true }));
 
   app.get("/api/limits", async (c) => {
