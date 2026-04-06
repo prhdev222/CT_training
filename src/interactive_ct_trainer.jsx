@@ -86,8 +86,8 @@ function uid() {
 
 function normalizeStoredCase(c) {
   const lesion = c.lesion && typeof c.lesion === 'object'
-    ? { x: Number(c.lesion.x) || 50, y: Number(c.lesion.y) || 50, r: Number(c.lesion.r) || 10 }
-    : { x: 50, y: 50, r: 10 };
+    ? { x: Number(c.lesion.x) || 50, y: Number(c.lesion.y) || 50, r: Number(c.lesion.r) || 10, label: String(c.lesion.label || '') }
+    : { x: 50, y: 50, r: 10, label: '' };
   const primary =
     (Array.isArray(c.imageUrls) && c.imageUrls.find((u) => u && String(u).trim())) ||
     c.imageUrl ||
@@ -241,7 +241,7 @@ export default function CtBrainTeachingStudio() {
     narrative: '',
     teachingPoint: '',
     imageUrl: '',
-    lesion: { x: 50, y: 50, r: 10 },
+    lesion: { x: 50, y: 50, r: 10, label: '' },
   });
 
   React.useEffect(() => {
@@ -349,7 +349,7 @@ export default function CtBrainTeachingStudio() {
       narrative: c.narrative || '',
       teachingPoint: c.teachingPoint,
       imageUrl: c.imageUrl || '',
-      lesion: { ...c.lesion },
+      lesion: { ...c.lesion, label: String(c.lesion?.label || '') },
     });
   };
 
@@ -424,7 +424,7 @@ export default function CtBrainTeachingStudio() {
     try {
       const mime = cropSrc.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
       const url = getDataUrlFromPixelCrop(img, completedCrop, mime);
-      setEditor((p) => ({ ...p, imageUrl: url, lesion: { x: 50, y: 50, r: p.lesion.r } }));
+      setEditor((p) => ({ ...p, imageUrl: url, lesion: { x: 50, y: 50, r: p.lesion.r, label: p.lesion.label || '' } }));
       if (fileInputRef.current) fileInputRef.current.value = '';
       closeCropModal();
     } catch (err) {
@@ -439,7 +439,8 @@ export default function CtBrainTeachingStudio() {
     countChars(editor.tags) > FIELD_LIMITS.tagsJoined ||
     countChars(editor.description) > FIELD_LIMITS.description ||
     countChars(editor.narrative) > FIELD_LIMITS.narrative ||
-    countChars(editor.teachingPoint) > FIELD_LIMITS.teachingPoint;
+    countChars(editor.teachingPoint) > FIELD_LIMITS.teachingPoint ||
+    countChars(editor.lesion?.label) > FIELD_LIMITS.lesionLabel;
 
   const addCase = async () => {
     if (!editor.title || !editor.pattern || !editor.imageUrl || fieldOverflow) return;
@@ -468,7 +469,7 @@ export default function CtBrainTeachingStudio() {
           narrative: '',
           teachingPoint: '',
           imageUrl: '',
-          lesion: { x: 50, y: 50, r: 10 },
+          lesion: { x: 50, y: 50, r: 10, label: '' },
         });
       } catch (e) {
         window.alert(String(e.message || e));
@@ -497,7 +498,7 @@ export default function CtBrainTeachingStudio() {
       narrative: '',
       teachingPoint: '',
       imageUrl: '',
-      lesion: { x: 50, y: 50, r: 10 },
+      lesion: { x: 50, y: 50, r: 10, label: '' },
     });
   };
 
@@ -549,7 +550,7 @@ export default function CtBrainTeachingStudio() {
       narrative: editor.narrative,
       teachingPoint: editor.teachingPoint,
       imageUrl: editor.imageUrl,
-      lesion: { ...editor.lesion },
+      lesion: { ...editor.lesion, label: String(editor.lesion?.label || '') },
     }) : c));
   };
 
@@ -888,6 +889,20 @@ export default function CtBrainTeachingStudio() {
                           </div>
                         </div>
 
+                        <div className="ct-field space-y-2">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <Label className="ct-label">Label ของจุดเฉลย (ไม่บังคับ)</Label>
+                            <span className={`ct-char ${countChars(editor.lesion?.label) > FIELD_LIMITS.lesionLabel ? 'font-semibold text-red-600' : 'text-slate-400'}`}>
+                              {countChars(editor.lesion?.label)}/{FIELD_LIMITS.lesionLabel}
+                            </span>
+                          </div>
+                          <Input
+                            value={editor.lesion.label}
+                            onChange={(e) => setEditor((p) => ({ ...p, lesion: { ...p.lesion, label: e.target.value } }))}
+                            placeholder="เช่น BG ซ้าย / MCA territory / basal cistern"
+                          />
+                        </div>
+
                         <div className="rounded-3xl border-2 border-dashed border-cyan-200/60 bg-gradient-to-b from-cyan-50/30 to-slate-50/40 p-5 shadow-inner">
                           <div className="mb-3 text-sm font-medium text-slate-700">พรีวิว — คลิกบนภาพเพื่อวางจุดกลาง lesion</div>
                           <div
@@ -910,6 +925,14 @@ export default function CtBrainTeachingStudio() {
                                     height: `${editor.lesion.r * 4}px`,
                                   }}
                                 />
+                                {editor.lesion.label ? (
+                                  <div
+                                    className="pointer-events-none absolute -translate-x-1/2 rounded-full bg-black/70 px-2 py-1 text-[11px] font-medium text-white"
+                                    style={{ left: `${editor.lesion.x}%`, top: `calc(${editor.lesion.y}% + 14px)` }}
+                                  >
+                                    {editor.lesion.label}
+                                  </div>
+                                ) : null}
                               </>
                             ) : (
                               <div className="flex h-full items-center justify-center text-slate-400">
@@ -1112,6 +1135,14 @@ export default function CtBrainTeachingStudio() {
                               className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400"
                               style={{ left: `${activeCase.lesion.x}%`, top: `${activeCase.lesion.y}%`, width: '8px', height: '8px' }}
                             />
+                            {activeCase.lesion.label ? (
+                              <div
+                                className="pointer-events-none absolute -translate-x-1/2 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white"
+                                style={{ left: `${activeCase.lesion.x}%`, top: `calc(${activeCase.lesion.y}% + 14px)` }}
+                              >
+                                {activeCase.lesion.label}
+                              </div>
+                            ) : null}
                           </>
                         )}
                       </div>

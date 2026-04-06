@@ -24,12 +24,14 @@ export async function migrate(db) {
       lesion_x REAL NOT NULL,
       lesion_y REAL NOT NULL,
       lesion_r REAL NOT NULL,
+      lesion_label TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
   const alters = [
     "ALTER TABLE cases ADD COLUMN image_key_2 TEXT",
     "ALTER TABLE cases ADD COLUMN image_key_3 TEXT",
+    "ALTER TABLE cases ADD COLUMN lesion_label TEXT NOT NULL DEFAULT ''",
   ];
   for (const sql of alters) {
     try {
@@ -74,6 +76,7 @@ function rowToCase(row, publicBase) {
       x: row.lesion_x,
       y: row.lesion_y,
       r: row.lesion_r,
+      label: row.lesion_label ?? "",
     },
   };
 }
@@ -88,7 +91,7 @@ export async function countCases(db) {
 
 export async function listCases(db, publicBase) {
   const rs = await db.execute({
-    sql: `SELECT id, title, pattern, tags_json, description, narrative, teaching_point, image_key, lesion_x, lesion_y, lesion_r, created_at
+    sql: `SELECT id, title, pattern, tags_json, description, narrative, teaching_point, image_key, lesion_x, lesion_y, lesion_r, lesion_label, created_at
           FROM cases ORDER BY created_at DESC`,
     args: [],
   });
@@ -98,7 +101,7 @@ export async function listCases(db, publicBase) {
 
 export async function getCaseById(db, id, publicBase) {
   const rs = await db.execute({
-    sql: `SELECT id, title, pattern, tags_json, description, narrative, teaching_point, image_key, lesion_x, lesion_y, lesion_r
+    sql: `SELECT id, title, pattern, tags_json, description, narrative, teaching_point, image_key, lesion_x, lesion_y, lesion_r, lesion_label
           FROM cases WHERE id = ?`,
     args: [id],
   });
@@ -109,8 +112,8 @@ export async function getCaseById(db, id, publicBase) {
 
 export async function insertCase(db, payload) {
   await db.execute({
-    sql: `INSERT INTO cases (id, title, pattern, tags_json, description, narrative, teaching_point, image_key, lesion_x, lesion_y, lesion_r)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO cases (id, title, pattern, tags_json, description, narrative, teaching_point, image_key, lesion_x, lesion_y, lesion_r, lesion_label)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       payload.id,
       payload.title,
@@ -123,6 +126,7 @@ export async function insertCase(db, payload) {
       payload.lesion.x,
       payload.lesion.y,
       payload.lesion.r,
+      payload.lesion.label ?? "",
     ],
   });
 }
@@ -132,7 +136,7 @@ export async function updateCase(db, id, payload) {
     sql: `UPDATE cases SET
           title = ?, pattern = ?, tags_json = ?, description = ?, narrative = ?, teaching_point = ?,
           image_key = COALESCE(?, image_key),
-          lesion_x = ?, lesion_y = ?, lesion_r = ?
+          lesion_x = ?, lesion_y = ?, lesion_r = ?, lesion_label = ?
           WHERE id = ?`,
     args: [
       payload.title,
@@ -145,6 +149,7 @@ export async function updateCase(db, id, payload) {
       payload.lesion.x,
       payload.lesion.y,
       payload.lesion.r,
+      payload.lesion.label ?? "",
       id,
     ],
   });

@@ -6,6 +6,7 @@ export const LIMITS = {
   description: 400,
   narrative: 2000,
   teachingPoint: 700,
+  lesionLabel: 80,
 };
 
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;

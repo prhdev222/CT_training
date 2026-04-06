@@ -6,6 +6,7 @@ export const FIELD_LIMITS = {
   description: 400,
   narrative: 2000,
   teachingPoint: 700,
+  lesionLabel: 80,
 };
 
 export function countChars(s) {

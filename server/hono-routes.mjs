@@ -68,6 +68,7 @@ export function createCaseApp(getCtx) {
         x: Number(lesion.x) || 50,
         y: Number(lesion.y) || 50,
         r: Number(lesion.r) || 10,
+        label: clipText(lesion.label, LIMITS.lesionLabel),
       },
     };
   }
