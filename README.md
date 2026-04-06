@@ -164,6 +164,8 @@ npx wrangler secret put TURSO_AUTH_TOKEN
 npx wrangler secret put ADMIN_API_KEY
 ```
 
+ทดสอบ Worker ในเครื่องด้วย `npm run preview:cf` ให้สร้างไฟล์ **`.dev.vars`** (ไม่ commit) จากแม่แบบ `.dev.vars.example` แล้วใส่ `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_API_KEY` — ค่าเดียวกับใน `.env` ได้
+
 ### 4.4 Deploy
 
 ```bash

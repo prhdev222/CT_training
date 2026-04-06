@@ -17,7 +17,7 @@ bucket_name = "ct-training-cases"
 
 # ตัวแปรที่ไม่เป็นความลับ (แก้เป็นค่าจริงก่อน deploy หรือ override ในแดชบอร์ด)
 [vars]
-R2_PUBLIC_BASE_URL = "https://your-bucket-public.example.com"
+R2_PUBLIC_BASE_URL = "https://pub-9b87039634f741d49985a9853b2849da.r2.dev"
 # MAX_CASES = "12"
 # CORS_ORIGIN = "https://ct-training.xxx.workers.dev"
 # ADMIN_WEB_PASSWORD = "neuro"

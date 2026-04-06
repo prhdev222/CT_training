@@ -1,0 +1,4 @@
+# คัดลอกเป็น .dev.vars แล้วกรอกค่าจริง — ใช้กับ `npm run preview:cf` / wrangler dev (ไม่ commit .dev.vars)
+TURSO_DATABASE_URL=
+TURSO_AUTH_TOKEN=
+ADMIN_API_KEY=
